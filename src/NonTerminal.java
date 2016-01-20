@@ -7,15 +7,15 @@ import java.util.ArrayList;
 
 public class NonTerminal extends Symbol {
 
-    ArrayList<Rule> localRules;
+    ArrayList<Rule> rules;
 
     NonTerminal(String name) {
         super(name);
-        localRules = new ArrayList<Rule>();
+        rules = new ArrayList<Rule>();
     }
 
     void addRule(Rule rule) {
-        localRules.add(rule);
+        rules.add(rule);
     }
 
     void print() {
@@ -23,7 +23,7 @@ public class NonTerminal extends Symbol {
     }
 
     void printAll() {
-        for (Rule rule : localRules) {
+        for (Rule rule : rules) {
             print();
             System.out.print(": ");
             rule.print();

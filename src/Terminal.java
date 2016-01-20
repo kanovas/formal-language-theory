@@ -11,6 +11,9 @@ public class Terminal extends Symbol {
     Terminal(String name) {
         super(name);
     }
+    Terminal(char c) {
+        super(Character.toString(c));
+    }
 
     @Override
     void print() {
