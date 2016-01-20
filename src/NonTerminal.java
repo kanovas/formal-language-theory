@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public class NonTerminal extends Symbol {
 
-    static ArrayList<Rule> localRules;
+    ArrayList<Rule> localRules;
 
     NonTerminal(String name) {
         super(name);

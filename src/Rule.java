@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Rule {
-    static ArrayList<Symbol> string;
-    static String in;
+    ArrayList<Symbol> string;
+    String in;
 
     Rule(String input, HashMap<String, NonTerminal> preGrammar) {
         //parse(new StringBuffer(input), preGrammar);

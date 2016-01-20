@@ -26,9 +26,7 @@ public class ParserGenerator {
         String nonTerminalString;
         NonTerminal nonTerminal;
         ArrayList<Pair<String, String>> rules = new ArrayList<>(); //nonTerminalString <--> 1 rule string
-        ArrayList<Rule> objectRules = new ArrayList<>(); //debug feature
-        ArrayList<Pair<NonTerminal, Rule>> objectAssoc = new ArrayList<>();
-        Rule objectRule;
+
         while (in.hasNext()) {
             int i = 0;
             currentLine = new StringBuffer(in.nextLine());
@@ -48,20 +46,15 @@ public class ParserGenerator {
         //connecting rules with non-terminals
         for (Pair<String, String> rule : rules) {
             nonTerminal = preGrammar.get(rule.getKey());
-            objectRules.add(new Rule(rule.getValue(), preGrammar));
-            //objectAssoc.add(new Pair<>(nonTerminal, ))
+            nonTerminal.addRule(new Rule(rule.getValue(), preGrammar));
         }
 
-        for (Rule o : objectRules) {
-            o.print();
-        }
-        /*
         grammar = new HashSet<>();
         grammar.addAll(preGrammar.values());
 
-        for (NonTerminal n : preGrammar.values()) {
+        for (NonTerminal n : grammar) {
             n.printAll();
-        }*/
+        }
     }
 
 }
