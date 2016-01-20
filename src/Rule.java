@@ -8,11 +8,10 @@ import java.util.HashMap;
 
 public class Rule {
     ArrayList<Symbol> string;
-    String in;
 
     Rule(String input, HashMap<String, NonTerminal> preGrammar) {
-        //parse(new StringBuffer(input), preGrammar);
-        in = input;
+        string = new ArrayList<>();
+        parse(new StringBuffer(input), preGrammar);
     }
 
     private void parse(StringBuffer input, HashMap<String, NonTerminal> preGrammar) {
@@ -22,20 +21,22 @@ public class Rule {
             if (input.charAt(l) == Terminal.delimiter) {
                 l++;
                 n = input.indexOf(String.valueOf(Terminal.delimiter), l);
-                string.add(new Terminal(input.substring(0, n)));
+                if (n < 0) {
+                    //parse error
+                }
+                string.add(new Terminal(input.substring(l, n)));
             }
             else {
-                n = input.indexOf(" ");
+                n = input.indexOf(" ", l) < 0 ? input.length() : input.indexOf(" ", l);
                 string.add(preGrammar.get(input.substring(l, n)));
             }
-            l += n + 1;
+            l = n + 1;
         }
     }
 
     void print() {
-        /*for (Symbol symbol : string) {
+        for (Symbol symbol : string) {
             symbol.print();
-        }*/
-        System.out.print(in);
+        }
     }
 }

@@ -31,7 +31,7 @@ public class ParserGenerator {
             int i = 0;
             currentLine = new StringBuffer(in.nextLine());
             nonTerminalString = currentLine.substring(i, currentLine.indexOf(":="));
-            i += currentLine.indexOf(":=") + 2;
+            i = currentLine.indexOf(":=") + 2;
             if (!preGrammar.containsKey(nonTerminalString)) {
                 nonTerminal = new NonTerminal(nonTerminalString);
                 preGrammar.put(nonTerminalString, nonTerminal);
@@ -39,7 +39,7 @@ public class ParserGenerator {
             while (i < currentLine.length()) {
                 int nextDelimiter = currentLine.indexOf(" | ", i) < 0 ? currentLine.length() : currentLine.indexOf(" | ", i);
                 rules.add(new Pair<>(nonTerminalString, currentLine.substring(i, nextDelimiter)));
-                i += nextDelimiter - i + 3;
+                i = nextDelimiter + 3;
             }
         }
 

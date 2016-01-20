@@ -14,6 +14,6 @@ public class Terminal extends Symbol {
 
     @Override
     void print() {
-        System.out.print(delimiter + name + delimiter);
+        System.out.print(" " + delimiter + name + delimiter + " ");
     }
 }
