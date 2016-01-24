@@ -63,11 +63,11 @@ public class ParserGenerator {
     }
 
     private static class Condition {
-        ArrayList<Expression> active, completed, predicted;
+        HashSet<Expression> active, completed, predicted;
         Condition() {
-            active = new ArrayList<>();
-            completed = new ArrayList<>();
-            predicted = new ArrayList<>();
+            active = new HashSet<>();
+            completed = new HashSet<>();
+            predicted = new HashSet<>();
         }
     }
 
@@ -76,14 +76,17 @@ public class ParserGenerator {
         array.set(i, array.get(j));
         array.set(j, o);
     }
-    /*
-    Scan itemset[p-1] for .../DOT/current... and copy it to active[p]/completed[p]
-     */
+
+
+    /* Scans itemset[m-1] for .../DOT/current... and copy it to active[p] or completed[p]
+    *  returns true if added something to completed
+    */
     //yes it is copypasted code oh but only once
-    private static void scanner(Condition[] conditions, Symbol current, int p) {
+    private static void scanner(Condition[] conditions, Symbol current, int m, int p) {
         Expression tmp;
+        boolean added = false, res = false;
 
-        for (Expression expr : conditions[p - 1].active) {
+        for (Expression expr : conditions[m - 1].active) {
             int n = expr.expression.indexOf(DOT);
             if (expr.expression.get(n + 1).equals(current)) {
                 tmp = expr;
@@ -96,7 +99,7 @@ public class ParserGenerator {
                 }
             }
         }
-        for (Expression expr : conditions[p - 1].predicted) {
+        for (Expression expr : conditions[m - 1].predicted) {
             int n = expr.expression.indexOf(DOT);
             if (expr.expression.get(n + 1).equals(current)) {
                 tmp = expr;
@@ -107,16 +110,35 @@ public class ParserGenerator {
                 else { //expr active
                     conditions[p].active.add(tmp);
                 }
+                if (added) res = true;
             }
         }
     }
 
-    private static void completer(Condition[] conditions, char symbol, int i) {
-
+    private static void completer(Condition[] conditions, int p) {
+        int checked = 0;
+        while (checked < conditions[p].completed.size()) {
+            checked = conditions[p].completed.size();
+            for (Expression expr : conditions[p].completed) {
+                scanner(conditions, expr.nonTerminal, expr.at, p);
+            }
+        }
     }
 
-    private static void predictor(Condition[] conditions, char symbol, int i) {
-
+    private static void predictor(Condition[] conditions, int p) {
+        Expression tmp;
+        for (Expression expr : conditions[p].active) {
+            int pos = expr.expression.indexOf(DOT);
+            Symbol next = expr.expression.get(pos + 1);
+            if (next.getClass().equals(NonTerminal.class)){
+                NonTerminal n = (NonTerminal) next;
+                for (Rule rule : n.rules) {
+                    tmp = new Expression(n, rule.string, p + 1);
+                    tmp.expression.add(0, DOT);
+                    conditions[p].predicted.add(tmp);
+                }
+            }
+        }
     }
 
     private static boolean parse(String word) {
@@ -136,9 +158,9 @@ public class ParserGenerator {
         for (int i = 1; i < p; i++) {
             conditions[i] = new Condition();
             char current = word.charAt(i - 1);
-            scanner(conditions, new Terminal(current), i);
-            completer(conditions, current, i);
-            predictor(conditions, current, i);
+            scanner(conditions, new Terminal(current), i, i);
+            completer(conditions, i);
+            predictor(conditions, i);
         }
         return false;
     }
