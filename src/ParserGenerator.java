@@ -13,6 +13,7 @@ public class ParserGenerator {
     private static Scanner in;
     private static Set<NonTerminal> grammar;
     private static NonTerminal DOT;
+    private static final String STARTING_SYMBOL = "S";
 
     private static void initGrammar() {
         HashMap<String, NonTerminal> preGrammar = new HashMap<>(); //assoc string <--> non-terminal
@@ -84,7 +85,6 @@ public class ParserGenerator {
     //yes it is copypasted code oh but only once
     private static void scanner(Condition[] conditions, Symbol current, int m, int p) {
         Expression tmp;
-        boolean added = false, res = false;
 
         for (Expression expr : conditions[m - 1].active) {
             int n = expr.expression.indexOf(DOT);
@@ -110,14 +110,14 @@ public class ParserGenerator {
                 else { //expr active
                     conditions[p].active.add(tmp);
                 }
-                if (added) res = true;
             }
         }
     }
 
     private static void completer(Condition[] conditions, int p) {
         int checked = 0;
-        while (checked < conditions[p].completed.size()) {
+        while (checked < conditions[p].completed.size()) { //написать по-другому как то а то ашипка нельзя добавлять и перебирать
+                                                            // ошибка параллельности крч TODO
             checked = conditions[p].completed.size();
             for (Expression expr : conditions[p].completed) {
                 scanner(conditions, expr.nonTerminal, expr.at, p);
@@ -127,7 +127,7 @@ public class ParserGenerator {
 
     private static void predictor(Condition[] conditions, int p) {
         Expression tmp;
-        for (Expression expr : conditions[p].active) {
+        for (Expression expr : conditions[p].active) {     //firstly, scan active
             int pos = expr.expression.indexOf(DOT);
             Symbol next = expr.expression.get(pos + 1);
             if (next.getClass().equals(NonTerminal.class)){
@@ -139,6 +139,22 @@ public class ParserGenerator {
                 }
             }
         }
+        int checked = 0;
+        while (checked < conditions[p].predicted.size()) {     //TODO см выше
+            checked = conditions[p].predicted.size();
+            for (Expression expr : conditions[p].predicted) {
+                int pos = expr.expression.indexOf(DOT);
+                Symbol next = expr.expression.get(pos + 1);
+                if (next.getClass().equals(NonTerminal.class)){
+                    NonTerminal n = (NonTerminal) next;
+                    for (Rule rule : n.rules) {
+                        tmp = new Expression(n, rule.string, p + 1);
+                        tmp.expression.add(0, DOT);
+                        conditions[p].predicted.add(tmp);
+                    }
+                }
+            }
+        }
     }
 
     private static boolean parse(String word) {
@@ -147,7 +163,7 @@ public class ParserGenerator {
         ArrayList<Symbol> expression;
         conditions[0] = new Condition();  //initialize itemSet[0], adding rules for starting symbol
         for (NonTerminal n : grammar) {
-            if (n.name.equals("S")) {
+            if (n.name.equals(STARTING_SYMBOL)) {
                 for (Rule rule : n.rules) {
                     expression = rule.string;
                     expression.add(0, DOT);
@@ -155,12 +171,18 @@ public class ParserGenerator {
                 }
             }
         }
+        predictor(conditions, 0);
         for (int i = 1; i < p; i++) {
             conditions[i] = new Condition();
             char current = word.charAt(i - 1);
             scanner(conditions, new Terminal(current), i, i);
             completer(conditions, i);
             predictor(conditions, i);
+        }
+        for (Expression expr : conditions[p - 1].completed) {
+            if (expr.nonTerminal.name.equals(STARTING_SYMBOL) && expr.at == 1) {
+                return true;
+            }
         }
         return false;
     }
@@ -181,6 +203,7 @@ public class ParserGenerator {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        parse(in.next());
+        String word = in.next();
+        if (parse(word)) System.out.println(word + " is a word of this formal language");
     }
 }
