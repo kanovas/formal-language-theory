@@ -59,16 +59,36 @@ public class ParserGenerator {
         Expression(NonTerminal nonTerminal, ArrayList<Symbol> expression, int at) {
             this.at = at;
             this.nonTerminal = nonTerminal;
-            this.expression = expression;
+            this.expression = new ArrayList<>(expression);
+        }
+        Expression(Expression expr) {
+            this.at = expr.at;
+            this.nonTerminal = expr.nonTerminal;
+            this.expression = new ArrayList<>(expr.expression);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null) return false;
+            if (getClass() != obj.getClass()) return false;
+            Expression n = (Expression) obj;
+            return n.expression.equals(expression) && n.at == at && n.nonTerminal.equals(nonTerminal);
+        }
+
+        @Override
+        public int hashCode() {
+            int p = 31;
+            return p*p*expression.hashCode() + p*nonTerminal.hashCode() + at;
         }
     }
 
     private static class Condition {
-        HashSet<Expression> active, completed, predicted;
+        LinkedHashSet<Expression> active, completed, predicted;
         Condition() {
-            active = new HashSet<>();
-            completed = new HashSet<>();
-            predicted = new HashSet<>();
+            active = new LinkedHashSet<>();
+            completed = new LinkedHashSet<>();
+            predicted = new LinkedHashSet<>();
         }
     }
 
@@ -89,7 +109,7 @@ public class ParserGenerator {
         for (Expression expr : conditions[m - 1].active) {
             int n = expr.expression.indexOf(DOT);
             if (expr.expression.get(n + 1).equals(current)) {
-                tmp = expr;
+                tmp = new Expression(expr);
                 swap(tmp.expression, n, n + 1);
                 if (tmp.expression.size() == n + 2) { //expr completed
                     conditions[p].completed.add(tmp);
@@ -102,7 +122,7 @@ public class ParserGenerator {
         for (Expression expr : conditions[m - 1].predicted) {
             int n = expr.expression.indexOf(DOT);
             if (expr.expression.get(n + 1).equals(current)) {
-                tmp = expr;
+                tmp = new Expression(expr);
                 swap(tmp.expression, n, n + 1);
                 if (tmp.expression.size() == n + 2) { //expr completed
                     conditions[p].completed.add(tmp);
@@ -115,13 +135,11 @@ public class ParserGenerator {
     }
 
     private static void completer(Condition[] conditions, int p) {
-        int checked = 0;
-        while (checked < conditions[p].completed.size()) { //написать по-другому как то а то ашипка нельзя добавлять и перебирать
-                                                            // ошибка параллельности крч TODO
-            checked = conditions[p].completed.size();
-            for (Expression expr : conditions[p].completed) {
-                scanner(conditions, expr.nonTerminal, expr.at, p);
-            }
+        Iterator<Expression> iterator = conditions[p].completed.iterator();  //TODO: concurrent modification
+        Expression expr;
+        while (iterator.hasNext()) {
+            expr = iterator.next();
+            scanner(conditions,expr.nonTerminal, expr.at, p);
         }
     }
 
@@ -139,20 +157,33 @@ public class ParserGenerator {
                 }
             }
         }
-        int checked = 0;
-        while (checked < conditions[p].predicted.size()) {     //TODO см выше
-            checked = conditions[p].predicted.size();
-            for (Expression expr : conditions[p].predicted) {
+
+        int added = 1;
+        LinkedList<Expression> addedExpr = new LinkedList<>();
+        while (added > 0) {
+            added = 0;
+            Iterator iterator = conditions[p].predicted.iterator();
+            Expression expr;
+            while (iterator.hasNext()) {
+                expr = (Expression) iterator.next();
                 int pos = expr.expression.indexOf(DOT);
                 Symbol next = expr.expression.get(pos + 1);
-                if (next.getClass().equals(NonTerminal.class)){
+                if (next.getClass().equals(NonTerminal.class)) {
                     NonTerminal n = (NonTerminal) next;
                     for (Rule rule : n.rules) {
                         tmp = new Expression(n, rule.string, p + 1);
                         tmp.expression.add(0, DOT);
-                        conditions[p].predicted.add(tmp);
+                        if (!conditions[p].predicted.contains(tmp)) {
+                            addedExpr.add(tmp);
+                            added++;
+                        }
                     }
                 }
+            }
+            iterator = addedExpr.iterator();
+            while(iterator.hasNext()) {
+                conditions[p].predicted.add((Expression)iterator.next());
+                iterator.remove();
             }
         }
     }
@@ -165,7 +196,7 @@ public class ParserGenerator {
         for (NonTerminal n : grammar) {
             if (n.name.equals(STARTING_SYMBOL)) {
                 for (Rule rule : n.rules) {
-                    expression = rule.string;
+                    expression = new ArrayList<>(rule.string);
                     expression.add(0, DOT);
                     conditions[0].active.add(new Expression(n, expression, 1));
                 }
